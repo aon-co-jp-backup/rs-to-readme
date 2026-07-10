@@ -1,0 +1,22 @@
+[package]
+name = "rs-to-readme"
+version = "0.1.0"
+edition = "2021"
+description = "Generate a polished README.md for a Rust crate from its Cargo.toml metadata and rustdoc comments"
+license = "MIT"
+repository = "https://github.com/aon-co-jp/rs-to-readme"
+authors = ["aon-co-jp"]
+
+[[bin]]
+name = "rs-to-readme"
+path = "src/main.rs"
+
+[dependencies]
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+proc-macro2 = "1.0"
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3"
