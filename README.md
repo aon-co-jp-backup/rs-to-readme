@@ -4,6 +4,12 @@
 
 Generate a polished README.md for a Rust crate from its Cargo.toml metadata and rustdoc comments
 
+📖 他言語 / Other languages: [日本語](README-Japan.md) / [English](README-English.md) /
+[中文](README-Chinese.md) / [한국어](README-Korea.md) / [Español](README-Spain.md) /
+[Français](README-France.md) / [Deutsch](README-Germany.md) / [Italiano](README-Italy.md) /
+[Русский](README-Russia.md) / [العربية](README-Arabic.md) ·
+他プロジェクトへの導入は **[PORTING.md](PORTING.md)** 参照。
+
 `rs-to-readme`: Rustクレートの`Cargo.toml`メタデータとrustdocコメントから、
 過不足のないREADME.mdを自動生成するライブラリ+CLIツール。
 
