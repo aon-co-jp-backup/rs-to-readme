@@ -12,10 +12,12 @@
 
 pub mod cargo_meta;
 pub mod doc_extract;
+pub mod html_render;
 pub mod render;
 
 pub use cargo_meta::CargoMeta;
 pub use doc_extract::{ExtractedDocs, PublicItem};
+pub use html_render::render_html;
 pub use render::render_readme;
 
 use std::path::Path;
