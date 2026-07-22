@@ -71,7 +71,13 @@ fn license_section(meta: &CargoMeta) -> String {
 }
 
 /// [`CargoMeta`]・[`ExtractedDocs`]から完全なREADME.md本文を組み立てる。
-pub fn render_readme(meta: &CargoMeta, docs: &ExtractedDocs) -> String {
+///
+/// `banner`には、多言語READMEへのリンクや`PORTING.md`への案内など、
+/// クレートのメタデータ/rustdocからは導出できないが毎回手で書き直したくない
+/// 短い前置き文を渡せる(`README.banner.md`の内容。詳細は[`crate`]直下の
+/// [`generate_readme`](crate::generate_readme)を参照)。バッジ行の直後・
+/// 説明文の直前に挿入される。
+pub fn render_readme(meta: &CargoMeta, docs: &ExtractedDocs, banner: Option<&str>) -> String {
     let mut out = String::new();
 
     out.push_str(&format!("# {}\n\n", meta.name));
@@ -80,6 +86,14 @@ pub fn render_readme(meta: &CargoMeta, docs: &ExtractedDocs) -> String {
     if !badge_line.is_empty() {
         out.push_str(&badge_line);
         out.push_str("\n\n");
+    }
+
+    if let Some(banner) = banner {
+        let trimmed = banner.trim();
+        if !trimmed.is_empty() {
+            out.push_str(trimmed);
+            out.push_str("\n\n");
+        }
     }
 
     if let Some(description) = &meta.description {
@@ -130,7 +144,7 @@ mod tests {
     fn renders_a_library_crate_with_cargo_add_instructions() {
         let meta = sample_meta();
         let docs = ExtractedDocs::default();
-        let readme = render_readme(&meta, &docs);
+        let readme = render_readme(&meta, &docs, None);
         assert!(readme.contains("cargo add sample"));
         assert!(!readme.contains("cargo install sample"));
     }
@@ -140,7 +154,7 @@ mod tests {
         let mut meta = sample_meta();
         meta.has_binary = true;
         let docs = ExtractedDocs::default();
-        let readme = render_readme(&meta, &docs);
+        let readme = render_readme(&meta, &docs, None);
         assert!(readme.contains("cargo install sample"));
     }
 
@@ -158,7 +172,27 @@ mod tests {
     fn omits_api_overview_section_when_there_are_no_public_items() {
         let meta = sample_meta();
         let docs = ExtractedDocs::default();
-        let readme = render_readme(&meta, &docs);
+        let readme = render_readme(&meta, &docs, None);
         assert!(!readme.contains("## API Overview"));
+    }
+
+    #[test]
+    fn inserts_banner_between_badges_and_description_when_present() {
+        let meta = sample_meta();
+        let docs = ExtractedDocs::default();
+        let readme = render_readme(&meta, &docs, Some("他言語 / Other languages: [日本語](README-Japan.md)\n"));
+        let badge_pos = readme.find("crates.io/crates/sample").unwrap();
+        let banner_pos = readme.find("他言語 / Other languages").unwrap();
+        let desc_pos = readme.find("A sample crate.").unwrap();
+        assert!(badge_pos < banner_pos, "{readme}");
+        assert!(banner_pos < desc_pos, "{readme}");
+    }
+
+    #[test]
+    fn ignores_a_banner_that_is_empty_or_only_whitespace() {
+        let meta = sample_meta();
+        let docs = ExtractedDocs::default();
+        let readme = render_readme(&meta, &docs, Some("   \n\n  "));
+        assert!(readme.contains("A sample crate.\n\n## Installation") || readme.contains("A sample crate.\n"), "{readme}");
     }
 }

@@ -101,3 +101,29 @@
   - 次にすべきこと: 特に緊急の課題はない。将来的に、GitHub本家の
     CSSとの差分が気になる場合は`github-markdown-css`パッケージの
     最新版と突き合わせて更新を検討。
+
+- **2026-07-22 バックグラウンドエージェント異常終了後の復旧・
+  `README.banner.md`フックの実用化**: 直前セッションが異常終了し、
+  未コミットの`src/lib.rs`/`src/render.rs`の変更(`generate_readme`/
+  `render_readme`に`README.banner.md`読み込みフックを追加。多言語
+  READMEリンクや`PORTING.md`案内など、Cargo.toml/rustdocから導出
+  できない前置き文を、バッジ行直後・説明文直前に挿入する仕組み)が
+  残っていた。テスト付きで完成していたため、`cargo build`/
+  `cargo test`(19件全green)で健全性確認の上そのまま採用。
+  - **発見した齟齬**: 実装は完成していたのに、当のrs-to-readme
+    リポジトリ自身が`README.banner.md`を置いておらず、`--check`が
+    実際に失敗する状態だった(README.mdに手書きの多言語バナーは
+    あるが、位置が「説明文の後」でツールの生成順序「説明文の前」と
+    不一致)。ドキュメント上は「後方互換を壊さない」とあるだけで、
+    自己適用(dogfooding)されていなかった。
+  - **対処**: `README.banner.md`を新規作成しバナー文を移設、
+    `rs-to-readme --path . --output README.md`で実際に再生成し、
+    `--check`が green(「README.mdは最新です」)になることを確認。
+    エコシステム内の他リポジトリ(open-raid-z/RCosmo/RPoem/
+    open-easy-web/open-web-server)を確認したが、いずれも
+    CLAUDE.md上でrs-to-readmeに言及するのみで、`README.banner.md`や
+    CI組み込み(`--check`実行)は未導入。今回はrs-to-readme本体側の
+    整合性修正に留め、他リポジトリへの導入は大規模変更になるため
+    見送った。個人情報のハードコードは無し。
+  - 次にすべきこと: 他リポジトリ(特にopen-easy-web、10ヶ国語README
+    運用中)へ`README.banner.md` + CI `--check`の導入を検討。

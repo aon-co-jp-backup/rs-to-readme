@@ -37,6 +37,13 @@ pub type Result<T> = std::result::Result<T, RsToReadmeError>;
 /// クレートのルートディレクトリ(`Cargo.toml`がある場所)から、README.md
 /// 本文を生成する。`entry_file`にはドキュメント抽出元のソースファイル
 /// (通常`src/lib.rs`、bin専用クレートなら`src/main.rs`)を指定する。
+///
+/// `crate_root`直下に`README.banner.md`が存在する場合、その内容がバッジ行の
+/// 直後・説明文の直前に挿入される。多言語READMEへのリンクや`PORTING.md`
+/// への案内など、`Cargo.toml`/rustdocからは導出できないが毎回手で書き直す
+/// 運用にはしたくない短い前置き文のためのフックで、ファイルが無ければ何も
+/// 挿入されない(既存クレートへの後方互換を壊さない)。これにより`--check`
+/// モードは、こうした前置き文を含むREADME.mdに対しても正しく機能する。
 pub fn generate_readme(crate_root: &Path, entry_file: &Path) -> Result<String> {
     let cargo_toml_path = crate_root.join("Cargo.toml");
     let cargo_toml_text = std::fs::read_to_string(&cargo_toml_path)
@@ -47,7 +54,9 @@ pub fn generate_readme(crate_root: &Path, entry_file: &Path) -> Result<String> {
         .map_err(|e| RsToReadmeError::ReadFile(entry_file.display().to_string(), e))?;
     let docs = doc_extract::extract(&entry_text)?;
 
-    Ok(render_readme(&meta, &docs))
+    let banner = std::fs::read_to_string(crate_root.join("README.banner.md")).ok();
+
+    Ok(render_readme(&meta, &docs, banner.as_deref()))
 }
 
 #[cfg(test)]
@@ -103,5 +112,33 @@ pub struct WidgetConfig {{
         assert!(readme.contains("cargo add widgetizer"), "{readme}");
         assert!(readme.contains("MIT"), "{readme}");
         assert!(readme.contains("https://github.com/example/widgetizer"), "{readme}");
+    }
+
+    #[test]
+    fn includes_readme_banner_md_content_when_present_in_crate_root() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("Cargo.toml"),
+            r#"
+[package]
+name = "widgetizer"
+version = "1.2.3"
+description = "Turns raw gadgets into polished widgets"
+license = "MIT"
+"#,
+        )
+        .unwrap();
+        std::fs::create_dir(dir.path().join("src")).unwrap();
+        let lib_path = dir.path().join("src/lib.rs");
+        std::fs::write(&lib_path, "//! Widgetizer.\n").unwrap();
+        std::fs::write(
+            dir.path().join("README.banner.md"),
+            "他言語 / Other languages: [日本語](README-Japan.md)\n",
+        )
+        .unwrap();
+
+        let readme = generate_readme(dir.path(), &lib_path).unwrap();
+
+        assert!(readme.contains("他言語 / Other languages"), "{readme}");
     }
 }
